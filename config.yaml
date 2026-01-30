@@ -1,0 +1,24 @@
+deck: Greek::Croy_(10|11|[1-9])$
+
+model: 
+  repo: ilsp/Llama-Krikri-8B-Instruct-GGUF
+  file: "*q4_k_m.gguf"
+
+output:
+  dialect: Koine Greek
+  length: 0.5
+
+forms:
+  - present active indicative
+  - present active infinitive
+  - present middle indicative
+  - present passive indicative
+  - imperfect active indicative
+  - imperfect middle indicative
+  - imperfect passive indicative
+  - aorist active indicative
+  - aorist middle indicative
+  - aorist passive indicative
+  - future active indicative
+  - future middle indicative
+  - future passive indicative

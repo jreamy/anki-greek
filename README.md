@@ -1,2 +1,2 @@
 # anki-greek
-Anki Extension for Greek (Koine)
+A script for generating greek flashcards in anki
