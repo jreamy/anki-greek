@@ -8,7 +8,11 @@ class Dictionary():
         self.forms = set()
         self.entries = dict()
 
-    def add(self, entry, definition):
+    def add(self, card):
+
+        entry = card["entry"]
+        definition = card["definition"]
+        form = card["form"]
 
         word = entry.split(",")[0].strip()
         self.entries[word] = {
@@ -18,11 +22,9 @@ class Dictionary():
         }
         self.entries[entry.strip()] = self.entries[word]
 
-        if "(+" in entry:
-            self.other.add(word)
-        elif "," in entry:
-            self.nouns.add(word)
-        elif definition.startswith("I ") or definition.startswith("it is "):
+        if form == "verb":
             self.verbs.add(word)
+        elif form == "noun":
+            self.nouns.add(word)
         else:
             self.other.add(word)

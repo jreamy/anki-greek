@@ -1,4 +1,7 @@
-deck: Greek::Croy_(10|11|[1-9])$
+decks: 
+  - Greek::Croy_0[1-9]
+  - Greek::Croy_1[0-2]
+  - Greek::Metzger_10x
 
 model: 
   repo: ilsp/Llama-Krikri-8B-Instruct-GGUF
@@ -9,6 +12,8 @@ output:
   length: 0.5
 
 forms:
+  - present imperative
+  - present participle
   - present active indicative
   - present active infinitive
   - present middle indicative
@@ -16,6 +21,8 @@ forms:
   - imperfect active indicative
   - imperfect middle indicative
   - imperfect passive indicative
+  - aorist imperative
+  - aorist participle
   - aorist active indicative
   - aorist middle indicative
   - aorist passive indicative
