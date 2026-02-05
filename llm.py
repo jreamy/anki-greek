@@ -23,7 +23,7 @@ class LLM:
     def close(self):
         self.llm.close()
 
-    def generate(self, word, entry, desc="phrase", length=3, dict_limit=None):
+    def generate(self, word, entry, definition, desc="phrase", length=3, dict_limit=None):
         seed = int(round(time.time() * 1000))
 
         self.llm.reset()
@@ -80,14 +80,11 @@ Constraints:
 """},
         ], max_tokens=length * 256, seed=seed)
 
-        # .split('\n')[0]
         story = output['choices'][0]["message"]['content'].strip()
 
-        # story = self.correct(story, word, desc, length=length, seed=seed)
+        return story, self.translate(story, word, definition, desc=desc, length=length, seed=seed)
 
-        return story, self.translate(story, desc, length=length, seed=seed)
-
-    def translate(self, story, desc, length=3, seed=None):
+    def translate(self, story, word, definition, desc="phrase", length=3, seed=None):
         output = self.llm.create_chat_completion([
             {
                 "role": "system",
@@ -102,32 +99,9 @@ Constraints:
  - Do not include content that is not in the original {desc}.
  - Correct any agreement issues or incorrect spelling.
  - Use {self.dialect} definitions when translating.
+ - Use the {self.dialect} definition of {word}: {definition}.
 
 Original: {story}
-"""},
-        ], max_tokens=length * 256, seed=seed)
-
-        return output['choices'][0]["message"]['content'].strip()
-
-    def correct(self, story, word, desc, length=3, seed=None):
-        output = self.llm.create_chat_completion([
-            {
-                "role": "system",
-                "content": f"You are a helpful assistant, very adept at writing in {self.dialect}. You respond only to the task at hand and include no extra dialogue.",
-            },
-            {
-                "role": "user",
-                "content": f"""
-Task: correct the following {desc} so it contains only correct {self.dialect}.
-Constraints: 
-- Include no explanation or preamble.
-- Include only the corrected {desc} in the output.
-- Correct all agreement, spelling, and accents according to {self.dialect}.
-- Replace any Modern Greek with {self.dialect}.
-- The {desc} should be grammatically correct.
-- The {desc} should focus the word '{word}'.
-
-Original: '{story}'
 """},
         ], max_tokens=length * 256, seed=seed)
 

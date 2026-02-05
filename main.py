@@ -26,7 +26,7 @@ if __name__ == "__main__":
                   card["definition"], f"({card["form"]})")
 
             front, back = llm.generate(
-                card["word"], card["entry"], length=cfg["output"]["length"], dict_limit=20)
+                card["word"], card["entry"], card["definition"], length=cfg["output"]["length"], dict_limit=20)
             Anki.update_card(card["noteId"], {
                 "Front": f"{front}<br/>[{card["entry"]}]",
                 "Back": f"{back}<br/>[{card["definition"]}]",
