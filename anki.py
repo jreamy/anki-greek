@@ -128,7 +128,7 @@ class Anki:
 
         return cards
 
-    def load_dictionary(decks: list[str]):
+    def load_dictionary(decks: list[str], review_min_threshold = 30):
         d = Dictionary()
         decks = [key for key in Anki.list_decks().keys() if any(
             [re.match(deck+"$", key) for deck in decks])]
@@ -137,10 +137,10 @@ class Anki:
             ids = Anki.list_cards(deck)
             cards.extend(Anki.get_card_info(ids))
 
-        reviewed = 0  # len([c for c in cards if c["reviewed"]])
+        reviewed = len([c for c in cards if c["reviewed"]])
 
         for card in cards:
-            if card["reviewed"] or reviewed < 30:
+            if card["reviewed"] or reviewed < review_min_threshold:
                 d.add(card)
 
         return d, cards

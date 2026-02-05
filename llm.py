@@ -2,6 +2,7 @@
 from llama_cpp import Llama
 from dictionary import Dictionary
 import random
+import re
 import time
 
 
@@ -22,7 +23,7 @@ class LLM:
     def close(self):
         self.llm.close()
 
-    def generate(self, word, desc="phrase", length=3, dict_limit=None):
+    def generate(self, word, entry, desc="phrase", length=3, dict_limit=None):
         seed = int(round(time.time() * 1000))
 
         self.llm.reset()
@@ -50,6 +51,11 @@ class LLM:
         elif word in self.dictionary.nouns:
             word = self.conjugate(word, noun_form, seed=seed)
 
+        cases = self.get_cases(entry)
+        phrase = word
+        if len(cases) == 1:
+            phrase = f"{word} {self.decline(random.sample(list(self.dictionary.nouns), 1)[0], cases[0])}"
+
         output = self.llm.create_chat_completion([
             {
                 "role": "system",
@@ -61,7 +67,7 @@ class LLM:
 Allowed Verbs: {", ".join(verbs)}
 Allowed Nouns: {", ".join(nouns)}
 Other Allowed Words: {", ".join(other)}
-Task: Use the above words to generate a short {desc} in {self.dialect} demonstrating the use of {word}.
+Task: Use the above words to generate a short {desc} in {self.dialect} demonstrating the use of {phrase}.
 Constraints: 
  - Include only allowed nouns, verbs, or other words provided above.
  - Include no explanation or preamble.
@@ -70,14 +76,14 @@ Constraints:
  - Correct all agreement, spelling, and accents according to {self.dialect}.
  - Use {verb_form} at least once.
  - The {desc} should be short and grammatically correct.
- - The {desc} should focus on the word '{word}'.
+ - The {desc} must focus on the {"phrase" if " " in phrase else "word"} '{phrase}'.
 """},
         ], max_tokens=length * 256, seed=seed)
 
         # .split('\n')[0]
         story = output['choices'][0]["message"]['content'].strip()
 
-        story = self.correct(story, word, desc, length=length, seed=seed)
+        # story = self.correct(story, word, desc, length=length, seed=seed)
 
         return story, self.translate(story, desc, length=length, seed=seed)
 
@@ -136,8 +142,38 @@ Original: '{story}'
             {
                 "role": "user",
                 "content": f"""
-Task: provide the {form} of {word} in {self.dialect}. Do not incllude articles in the output.
+Task: provide the {form} of {word} in {self.dialect}. Do not include articles in the output.
 """},
         ], max_tokens=32 * 256, seed=seed)
 
         return output['choices'][0]["message"]['content'].strip().lower()
+    
+    def decline(self, word, form, seed=None):
+        output = self.llm.create_chat_completion([
+            {
+                "role": "system",
+                "content": f"You are a helpful assistant, very adept at writing in {self.dialect}. Your response is two words.",
+            },
+            {
+                "role": "user",
+                "content": f"""
+Task: provide the {form} of {word} in {self.dialect}. Include the article in the output.
+"""},
+        ], max_tokens=32 * 256, seed=seed)
+
+        output = output['choices'][0]["message"]['content'].strip().lower()
+        if len(output.split(" ")) > 2:
+            output = " ".join(output.split(" ")[0:2])
+
+        return output
+
+    def get_cases(self, entry):
+        cases = {
+            "nom": "nominative",
+            "gen": "genitive",
+            "acc": "accusative",
+            "dat": "dative",
+            "voc": "vocative",
+        }
+
+        return [cases[x] for x in re.findall(r"\(\+?\s?(dat|gen|acc|voc|nom)\.?\)", entry)]
