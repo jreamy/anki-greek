@@ -1,10 +1,10 @@
-import yaml
 import sys
 from llm import LLM
 from anki import Anki
+import json
 
 with open(sys.argv[1]) as f:
-    cfg = yaml.safe_load(f)
+    cfg = json.load(f)
 
 
 if __name__ == "__main__":

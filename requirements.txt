@@ -3,4 +3,3 @@ huggingface_hub
 hf_transfer
 protobuf
 requests
-PyYAML
