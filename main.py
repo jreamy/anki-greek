@@ -14,8 +14,7 @@ if __name__ == "__main__":
     for form in cfg["forms"]:
         dictionary.forms.add(form)
 
-    llm = LLM(cfg["model"]["repo"], cfg["model"]["file"],
-              cfg["output"]["dialect"], dictionary)
+    llm = LLM(cfg["output"]["dialect"], dictionary, **cfg["model"])
 
     try:
         for card in cards:

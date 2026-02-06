@@ -29,8 +29,8 @@ class Anki:
             }
         }).json()
     
-    def update_card(id, fields):
-        return requests.post("http://localhost:8765", json={
+    def update_card(id, fields, tags=[]):
+        card = requests.post("http://localhost:8765", json={
             "action": "updateNoteFields",
             "version": 6,
             "params": {
@@ -40,6 +40,10 @@ class Anki:
                 }
             }
         }).json()["result"]
+        for tag in tags:
+            Anki.add_tags([id], tag)
+
+        return card
 
     def tagged_cards():
         return requests.post("http://localhost:8765", json={

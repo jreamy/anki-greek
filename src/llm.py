@@ -1,6 +1,6 @@
 
 from llama_cpp import Llama
-from dictionary import Dictionary
+from .dictionary import Dictionary
 import random
 import re
 import time
