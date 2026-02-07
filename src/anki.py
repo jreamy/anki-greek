@@ -4,7 +4,6 @@ from aqt import mw
 import re
 from .dictionary import Dictionary
 
-
 def derive_fields(note):
 
     fields = {}
@@ -26,11 +25,9 @@ def derive_fields(note):
         "fields": fields
     }
 
-    card["entry"] = card["fields"]["Front"]["value"].split(
-        "<br/>")[-1].split("<br>")[-1].strip().strip("[]")
+    card["entry"] = card["fields"]["Front"]["value"].strip()
     card["word"] = card["entry"].split("(")[0].split(",")[0].strip()
-    card["definition"] = card["fields"]["Back"]["value"].split(
-        "<br/>")[-1].split("<br>")[-1].split("(")[0].strip().strip("[]")
+    card["definition"] = card["fields"]["Back"]["value"].split("(")[0].strip().strip("[]")
 
     if "(+" in card["entry"]:
         card["form"] = "other"
@@ -43,10 +40,29 @@ def derive_fields(note):
 
     return card
 
-
 class Anki:
 
+    def migrate_note(id: int):
+        note = mw.col.get_note(id)
+        target_model = mw.col.models.by_name("anki-greek")
+        source_model = note.note_type()
+        if source_model["name"] == "anki-greek" or not target_model:
+            return
+        print(f"migrating {id}")
+        
+        input = mw.col.models.change_notetype_info(
+            old_notetype_id=source_model['id'],
+            new_notetype_id=target_model['id']
+        ).input
+        input.note_ids.extend([id])
+        
+        mw.col.models.change_notetype_of_notes(input)
+        mw.reset()
+
+
     def update_card(id: int, fields: dict = {}, tags: list = [], replace_tags: bool = False):
+        Anki.migrate_note(id)
+
         # 1. Get the note object by its ID
         note = mw.col.get_note(id)
         for field_name, value in fields.items():
@@ -57,7 +73,12 @@ class Anki:
             note.tags = tags
         else:
             # Merge lists and remove duplicates
-            note.tags = list(set(note.tags + tags))
+            tset = set(note.tags + tags)
+            if "generated" in tset:
+                tset.remove("generated")
+            if "anki-greek" in tset:
+                tset.remove("anki-greek")
+            note.tags = list(tset)
 
         mw.col.update_note(note)
         mw.reset()
@@ -69,6 +90,9 @@ class Anki:
 
     def list_cards(deck):
         return [int(x) for x in mw.col.find_notes(f"deck:{deck}")]
+
+    def list_tagged_cards(tag):
+        return [int(x) for x in mw.col.find_notes(f"tag:{tag}")]
 
     def card_info(note_ids: list[int]):
         result = []
@@ -133,3 +157,34 @@ class Anki:
                 d.add(card)
 
         return d, cards
+
+    def get_or_create_custom_model():
+        model_name = "anki-greek"
+        mm = mw.col.models
+        
+        # 1. Check if it already exists
+        existing = mm.by_name(model_name)
+        if existing:
+            return existing
+
+        # 2. Create the base model
+        model = mm.new(model_name)
+        
+        # 3. Add Fields
+        for field_name in ["Front", "Back", "Story", "Translation"]:
+            fld = mm.new_field(field_name)
+            mm.add_field(model, fld)
+
+        # 4. Add the Template
+        template = mm.new_template("Standard Card")
+        template['qfmt'] = "<div style='color:var(--link)'>{{Story}}</div><div style='font-size:small'>[{{Front}}]</div>"
+        template['afmt'] = "{{FrontSide}}<hr id=answer><div style='color:var(--graded-good)'>{{Translation}}</div><div style='font-size:small'>[{{Back}}]</div>"
+        mm.add_template(model, template)
+
+        # 5. Add custom CSS (Optional but recommended)
+        model['css'] += "\n.card { text-align: center; font-size: 20px; }\n"
+
+        # 6. Save to collection
+        mm.add(model)
+        return model
+    

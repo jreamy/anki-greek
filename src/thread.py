@@ -2,16 +2,13 @@ import queue
 import threading
 from aqt import mw
 from aqt.qt import *
-from aqt.utils import showInfo
 from aqt.gui_hooks import profile_did_open, profile_will_close, reviewer_did_answer_card
 
 from .llm import LLM
-from .dictionary import Dictionary
 
 from .anki import Anki, derive_fields
-
-import os
-import sys
+import re
+import os, sys
 from contextlib import contextmanager
 
 
@@ -33,7 +30,8 @@ class BackgroundTask(threading.Thread):
         self._stop_event = threading.Event()
         self.cfg = cfg
         self.models_path = models_path
-        self.msg_queue = queue.Queue()
+        self.msg_queue = queue.LifoQueue()
+        self.do_sync = False
         self.llm = None
 
     def stop(self):
@@ -42,6 +40,7 @@ class BackgroundTask(threading.Thread):
         self._stop_event.set()
 
     def run(self):
+        mw.taskman.run_on_main(Anki.get_or_create_custom_model)
 
         dictionary, cards = Anki.load_dictionary(self.cfg["decks"])
         for form in self.cfg["forms"]:
@@ -58,14 +57,20 @@ class BackgroundTask(threading.Thread):
 
                 if message["action"] == "update_all":
                     mw.taskman.run_on_main(self.update_all)
+                    self.do_sync = True
                 if message["action"] in ["review", "update"]:
                     self.update_card(message["card"])
 
                 self.msg_queue.task_done()
+                if self.msg_queue.qsize() == 0 and self.do_sync:
+                    mw.taskman.run_on_main(mw.onSync)
+                    self.do_sync = False
+
             except queue.Empty:
                 continue
 
     def update_all(self):
+
         snapshot = list(self.msg_queue.queue)
         _, cards = Anki.load_dictionary(self.cfg["decks"])
         for card in cards:
@@ -87,13 +92,13 @@ class BackgroundTask(threading.Thread):
 
         self.llm.dictionary.add(card)
 
-        front, back = self.llm.generate(
+        story, translation = self.llm.generate(
             card["word"], card["entry"], card["definition"], length=self.cfg["output"]["length"], dict_limit=20)
 
         mw.taskman.run_on_main(lambda: Anki.update_card(card["noteId"], {
-            "Front": f"{front}<br/>[{card["entry"]}]",
-            "Back": f"{back}<br/>[{card["definition"]}]",
-        }, tags=["generated"]))
+            "Story": story,
+            "Translation": translation,
+        }))
 
         mw.taskman.run_on_main(mw.toolbar.draw)
 
@@ -123,16 +128,13 @@ def setup_llm_thread(cfg, models_path):
 
     def on_review(reviewer, card, ease):
         q = get_llm_msg_queue()
-        if q:
+        key = mw.col.decks.name(card.did)
+        if q and any([re.match(deck+"$", key) for deck in cfg["decks"]]):
             q.put({"action": "review", "card": derive_fields(card.note())})
 
-    # 3. Register Hooks
-    # 'profile_did_open' ensures 'mw' is ready
     profile_did_open.append(start_listener)
-
-    # 'profile_will_close' is the standard "Anki is closing" signal
     profile_will_close.append(stop_listener)
-
     reviewer_did_answer_card.append(on_review)
 
     return get_llm_msg_queue
+

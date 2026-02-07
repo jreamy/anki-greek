@@ -16,7 +16,7 @@ def on_click_generate():
 
 def on_links_init(links, toolbar):
     q = get_llm_message_queue()
-    q_size = q.qsize() + q.unfinished_tasks if q else 0
+    q_size = q.unfinished_tasks if q else 0
 
     # We use the toolbar's helper to create the link correctly
     # This ensures the styling matches the rest of the UI
