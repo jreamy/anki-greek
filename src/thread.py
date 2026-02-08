@@ -74,7 +74,7 @@ class BackgroundTask(threading.Thread):
         snapshot = list(self.msg_queue.queue)
         _, cards = Anki.load_dictionary(self.cfg["decks"])
         for card in cards:
-            if "generated" in card["tags"] and card["mod"] > card["reviewed"]:
+            if card["modelName"] == "anki-greek" and card["mod"] > card["reviewed"]:
                 continue
 
             msg = {"action": "update", "card": card}
@@ -84,7 +84,7 @@ class BackgroundTask(threading.Thread):
     def update_card(self, card):
         mw.taskman.run_on_main(mw.toolbar.draw)
 
-        if "generated" in card["tags"] and "reviewed" in card and "mod" in card and card["mod"] > card["reviewed"]:
+        if card["modelName"] == "anki-greek" and "reviewed" in card and "mod" in card and card["mod"] > card["reviewed"]:
             return
 
         print("updating", card["word"], "-",
