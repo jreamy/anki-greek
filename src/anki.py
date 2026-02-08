@@ -73,12 +73,7 @@ class Anki:
             note.tags = tags
         else:
             # Merge lists and remove duplicates
-            tset = set(note.tags + tags)
-            if "generated" in tset:
-                tset.remove("generated")
-            if "anki-greek" in tset:
-                tset.remove("anki-greek")
-            note.tags = list(tset)
+            note.tags = list(set(note.tags + tags))
 
         mw.col.update_note(note)
         mw.reset()
