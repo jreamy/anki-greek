@@ -4,11 +4,13 @@ from aqt import mw
 from aqt.qt import *
 from aqt.gui_hooks import profile_did_open, profile_will_close, reviewer_did_answer_card
 
+import json
 from .llm import LLM
 
 from .anki import Anki, derive_fields
 import re
-import os, sys
+import os
+import sys
 from contextlib import contextmanager
 
 
@@ -32,25 +34,37 @@ class BackgroundTask(threading.Thread):
         self.models_path = models_path
         self.msg_queue = queue.LifoQueue()
         self.do_sync = False
-        self.llm = None
+        # self.llm = None
+        self.llms = {}
 
     def stop(self):
-        if self.llm:
-            self.llm.close()
         self._stop_event.set()
+        self.msg_queue.shutdown(immediate=True)
+        # if self.llm:
+        #     self.llm.close()
+        for llm in self.llms.values():
+            llm.close()
+
+    def get_llm(self, cfg):
+        key = json.dumps(cfg)
+        if key in self.llms:
+            return self.llms[key]
+        
+        dictionary = Anki.load_dict(Anki.list_decks_by_config(cfg["id"]))
+
+        print(f"anki-greek: loading model {cfg.get("model", {}).get("repo", "")}.")
+
+        with silence_stderr():
+            llm = LLM(cfg["dialect"], dictionary,
+                           local_dir=self.models_path, **cfg["model"])
+        
+        self.llms[key] = llm
+        return llm
 
     def run(self):
         mw.taskman.run_on_main(Anki.get_or_create_custom_model)
 
-        dictionary, cards = Anki.load_dictionary(self.cfg["decks"])
-        for form in self.cfg["forms"]:
-            dictionary.forms.add(form)
-
-        with silence_stderr():
-            self.llm = LLM(self.cfg["output"]["dialect"], dictionary,
-                           local_dir=self.models_path, **self.cfg["model"])
-
-        print("Background llm thread: Started listening.")
+        print("anki-greek: started background thread.")
         while not self._stop_event.is_set():
             try:
                 message = self.msg_queue.get(timeout=1.0)
@@ -59,7 +73,7 @@ class BackgroundTask(threading.Thread):
                     mw.taskman.run_on_main(self.update_all)
                     self.do_sync = True
                 if message["action"] in ["review", "update"]:
-                    self.update_card(message["card"])
+                    self.update_card(message["card"], message["cfg"])
 
                 self.msg_queue.task_done()
                 if self.msg_queue.qsize() == 0 and self.do_sync:
@@ -69,31 +83,45 @@ class BackgroundTask(threading.Thread):
             except queue.Empty:
                 continue
 
+            except queue.ShutDown:
+                return
+
     def update_all(self):
 
+        cfgs = {}
+
         snapshot = list(self.msg_queue.queue)
-        _, cards = Anki.load_dictionary(self.cfg["decks"])
+        cards = Anki.get_card_info(Anki.list_cards("anki-greek", query="note"))
         for card in cards:
             if card["modelName"] == "anki-greek" and card["mod"] > card["reviewed"]:
                 continue
 
-            msg = {"action": "update", "card": card}
+            cfg_id = card["deck_conf"]
+            if not cfg_id in cfgs:
+                cfgs[cfg_id] = Anki.get_review_config(cfg_id)
+
+            if not cfgs[cfg_id].get("enabled", False):
+                continue
+
+            msg = {"action": "update", "card": card, "cfg": cfgs[cfg_id]}
             if msg not in snapshot:
                 self.msg_queue.put(msg)
 
-    def update_card(self, card):
+    def update_card(self, card, cfg):
         mw.taskman.run_on_main(mw.toolbar.draw)
 
         if card["modelName"] == "anki-greek" and "reviewed" in card and "mod" in card and card["mod"] > card["reviewed"]:
             return
 
-        print("updating", card["word"], "-",
-              card["definition"], f"({card["form"]})")
+        print("anki-greek: updating", card["word"], "-",
+              card["definition"], f"({card["form"]})", "-", cfg["dialect"])
 
-        self.llm.dictionary.add(card)
+        llm = self.get_llm(cfg)
+        llm.dictionary.forms = set(cfg["verb_forms"].split("\n"))
+        llm.dictionary.add(card)
 
-        story, translation = self.llm.generate(
-            card["word"], card["entry"], card["definition"], length=self.cfg["output"]["length"], dict_limit=20)
+        story, translation = llm.generate(
+            card["word"], card["entry"], card["definition"], dict_limit=20)
 
         mw.taskman.run_on_main(lambda: Anki.update_card(card["noteId"], {
             "Story": story,
@@ -116,9 +144,9 @@ def setup_llm_thread(cfg, models_path):
     def stop_listener():
         nonlocal _listener
         if _listener:
-            print("Anki closing: Stopping background thread...")
+            print("anki-greek: stopping background thread...")
             _listener.stop()
-            _listener.join(timeout=5.0)
+            _listener.join(timeout=30.0)
             _listener = None
 
     def get_llm_msg_queue():
@@ -128,13 +156,19 @@ def setup_llm_thread(cfg, models_path):
 
     def on_review(reviewer, card, ease):
         q = get_llm_msg_queue()
-        key = mw.col.decks.name(card.did)
-        if q and any([re.match(deck+"$", key) for deck in cfg["decks"]]):
-            q.put({"action": "review", "card": derive_fields(card.note())})
+        if not q:
+            return
+
+        deck = mw.col.decks.get(card.did)
+        conf = Anki.get_review_config(deck.get("conf"))
+        if not conf["enabled"]:
+            return
+
+        crd = derive_fields(card.note(), deck)
+        q.put({"action": "review", "card": crd, "cfg": conf})
 
     profile_did_open.append(start_listener)
     profile_will_close.append(stop_listener)
     reviewer_did_answer_card.append(on_review)
 
     return get_llm_msg_queue
-

@@ -4,7 +4,7 @@ from aqt import mw
 import re
 from .dictionary import Dictionary
 
-def derive_fields(note):
+def derive_fields(note, deck):
 
     fields = {}
     model = note.note_type()
@@ -19,6 +19,8 @@ def derive_fields(note):
     card = {
         "noteId": note.id,
         "cards": card_ids,
+        "deck_id": deck["id"],
+        "deck_conf": deck.get("conf"),
         "mod": note.mod,
         "modelName": model['name'],
         "tags": note.tags,
@@ -82,12 +84,12 @@ class Anki:
     def list_decks():
         decks_data = mw.col.decks.all_names_and_ids()
         return {d.name: d.id for d in decks_data}
-
-    def list_cards(deck):
-        return [int(x) for x in mw.col.find_notes(f"deck:{deck}")]
+    
+    def list_cards(arg, query="deck"):
+        return [int(x) for x in mw.col.find_notes(f"{query}:{arg}")]
 
     def list_tagged_cards(tag):
-        return [int(x) for x in mw.col.find_notes(f"tag:{tag}")]
+        return Anki.list_cards(tag, query="tag")
 
     def card_info(note_ids: list[int]):
         result = []
@@ -96,7 +98,13 @@ class Anki:
             if not note:
                 continue
 
-            result.append(derive_fields(note))
+            cards = note.card_ids()
+            if len(cards) != 1:
+                continue
+
+            deck = mw.col.decks.get(mw.col.get_card(cards[0]).did)
+
+            result.append(derive_fields(note, deck))
 
         return result
 
@@ -135,6 +143,37 @@ class Anki:
                                         for x in revs]) / 1000) if len(revs) else 0
 
         return cards
+    
+    def get_review_config(conf_id):
+        cfg = mw.col.decks.get_config(conf_id)
+        return {
+            "id": conf_id,
+            "enabled": cfg.get("anki_greek_enabled", False),
+            "dialect": cfg.get("anki_greek_dialect", "Koine Greek"),
+            "model": {
+                "repo": cfg.get("anki_greek_model_repo", ""),
+                "filename": cfg.get("anki_greek_model_filename", ""),
+            },
+            "verb_forms": cfg.get("anki_greek_verb_forms", ""),
+        }
+    
+    def list_decks_by_config(cfg_id):
+        """
+        Returns a dictionary mapping Config ID -> List of Deck IDs.
+        Example: {1: [164210, 164211], 1770481: [164215]}
+        """
+        decks = []
+        
+        # mw.col.decks.all_names_and_ids() returns a list of DeckIdAndName objects
+        for deck_id_name in mw.col.decks.all_names_and_ids():
+            did = deck_id_name.id
+            deck = mw.col.decks.get(did)
+            
+            if deck.get("conf") == cfg_id:
+                decks.append(deck)
+                
+        return decks
+
 
     def load_dictionary(decks: list[str], review_min_threshold=30):
         d = Dictionary()
@@ -152,6 +191,21 @@ class Anki:
                 d.add(card)
 
         return d, cards
+    
+    def load_dict(decks: list[int], review_min_threshold=30):
+        d = Dictionary()
+        cards = []
+        for deck in decks:
+            ids = Anki.list_cards(deck)
+            cards.extend(Anki.get_card_info(ids))
+
+        reviewed = len([c for c in cards if c["reviewed"]])
+
+        for card in cards:
+            if card["reviewed"] or reviewed < review_min_threshold:
+                d.add(card)
+
+        return d
 
     def get_or_create_custom_model():
         model_name = "anki-greek"

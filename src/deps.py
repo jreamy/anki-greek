@@ -3,7 +3,6 @@ import subprocess
 import os, sys
 import site
 from importlib import reload, invalidate_caches
-from aqt.utils import showInfo
 
 def init():
     # Get the path to the 'vendor' directory
@@ -31,7 +30,7 @@ def init():
         import llama_cpp
     except ImportError:
         # Use subprocess to run pip install
-        print("installing 'llama_ccp' dependencies")
+        print("anki-greek: installing 'llama_ccp' dependencies")
         try:
             env = os.environ.copy()
             env["CMAKE_ARGS"] = "-DGGML_METAL=on"
@@ -48,7 +47,7 @@ def init():
                 env=env
             )
         except subprocess.CalledProcessError as e:
-            print(f"Err: {e.stderr}\nOut: {e.stdout}")
+            print(f"anki-greek: Err: {e.stderr}\nOut: {e.stdout}")
 
         # Reload the site module to make the newly installed package available in sys.path
         invalidate_caches()

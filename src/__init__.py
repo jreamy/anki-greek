@@ -7,6 +7,9 @@ addon_path, vendor_path, models_path = init()
 
 from .thread import setup_llm_thread
 
+from .options import init_deck_options
+init_deck_options()
+
 cfg = mw.addonManager.getConfig(__name__)
 
 get_llm_message_queue = setup_llm_thread(cfg, models_path)

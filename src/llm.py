@@ -23,7 +23,7 @@ class LLM:
     def close(self):
         self.llm.close()
 
-    def generate(self, word, entry, definition, desc="phrase", length=3, dict_limit=None):
+    def generate(self, word, entry, definition, desc="phrase", max_tokens=128, dict_limit=None):
         seed = int(round(time.time() * 1000))
 
         self.llm.reset()
@@ -78,13 +78,13 @@ Constraints:
  - The {desc} should be short and grammatically correct.
  - The {desc} must focus on the {"phrase" if " " in phrase else "word"} '{phrase}'.
 """},
-        ], max_tokens=length * 256, seed=seed)
+        ], max_tokens=max_tokens, seed=seed)
 
         story = output['choices'][0]["message"]['content'].strip()
 
-        return story, self.translate(story, word, definition, desc=desc, length=length, seed=seed)
+        return story, self.translate(story, word, definition, desc=desc, max_tokens=max_tokens, seed=seed)
 
-    def translate(self, story, word, definition, desc="phrase", length=3, seed=None):
+    def translate(self, story, word, definition, desc="phrase", max_tokens=128, seed=None):
         output = self.llm.create_chat_completion([
             {
                 "role": "system",
@@ -103,7 +103,7 @@ Constraints:
 
 Original: {story}
 """},
-        ], max_tokens=length * 256, seed=seed)
+        ], max_tokens=max_tokens, seed=seed)
 
         return output['choices'][0]["message"]['content'].strip()
 
@@ -118,7 +118,7 @@ Original: {story}
                 "content": f"""
 Task: provide the {form} of {word} in {self.dialect}. Do not include articles in the output.
 """},
-        ], max_tokens=32 * 256, seed=seed)
+        ], max_tokens=32, seed=seed)
 
         return output['choices'][0]["message"]['content'].strip().lower()
     
@@ -133,7 +133,7 @@ Task: provide the {form} of {word} in {self.dialect}. Do not include articles in
                 "content": f"""
 Task: provide the {form} of {word} in {self.dialect}. Include the article in the output.
 """},
-        ], max_tokens=32 * 256, seed=seed)
+        ], max_tokens=32, seed=seed)
 
         output = output['choices'][0]["message"]['content'].strip().lower()
         if len(output.split(" ")) > 2:
