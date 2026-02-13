@@ -81,6 +81,7 @@ Constraints:
         ], max_tokens=max_tokens, seed=seed)
 
         story = output['choices'][0]["message"]['content'].strip()
+        story = story.split("(Note")[0].split("(Translat")[0].strip()
 
         return story, self.translate(story, word, definition, desc=desc, max_tokens=max_tokens, seed=seed)
 
