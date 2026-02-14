@@ -5,10 +5,9 @@ from aqt.qt import *
 from aqt.gui_hooks import profile_did_open, profile_will_close, reviewer_did_answer_card
 
 import json
-from .llm import LLM
+from .deps import init
 
 from .anki import Anki, derive_fields
-import re
 import os
 import sys
 from contextlib import contextmanager
@@ -34,25 +33,25 @@ class BackgroundTask(threading.Thread):
         self.models_path = models_path
         self.msg_queue = queue.LifoQueue()
         self.do_sync = False
-        # self.llm = None
         self.llms = {}
 
     def stop(self):
         self._stop_event.set()
         self.msg_queue.shutdown(immediate=True)
-        # if self.llm:
-        #     self.llm.close()
         for llm in self.llms.values():
             llm.close()
 
     def get_llm(self, cfg):
+
         key = json.dumps(cfg)
         if key in self.llms:
             return self.llms[key]
         
-        dictionary = Anki.load_dict(Anki.list_decks_by_config(cfg["id"]))
+        dictionary = Anki.load_dict([d["name"] for d in Anki.list_decks_by_config(cfg["id"])])
+        print(f"anki-greek: loaded dictionary for model: {len(dictionary.nouns)} nouns, {len(dictionary.verbs)} verbs.")
 
         print(f"anki-greek: loading model {cfg.get("model", {}).get("repo", "")}.")
+        from .llm import LLM
 
         with silence_stderr():
             llm = LLM(cfg["dialect"], dictionary,
@@ -65,6 +64,9 @@ class BackgroundTask(threading.Thread):
         mw.taskman.run_on_main(Anki.get_or_create_custom_model)
 
         print("anki-greek: started background thread.")
+
+        init()
+        
         while not self._stop_event.is_set():
             try:
                 message = self.msg_queue.get(timeout=1.0)

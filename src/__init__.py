@@ -2,8 +2,8 @@ from aqt import mw
 from aqt.qt import *
 from aqt.gui_hooks import top_toolbar_did_init_links
 
-from .deps import init
-addon_path, vendor_path, models_path = init()
+from .deps import paths
+addon_path, vendor_path, models_path = paths()
 
 from .thread import setup_llm_thread
 

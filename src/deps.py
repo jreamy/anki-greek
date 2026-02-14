@@ -2,15 +2,22 @@
 import subprocess
 import os, sys
 import site
+from aqt import mw
+from aqt.utils import showInfo
 from importlib import reload, invalidate_caches
 
-def init():
-    # Get the path to the 'vendor' directory
+def paths():
     addon_path = os.path.dirname(__file__)
     vendor_path = os.path.join(addon_path, "user_files", "libs")
     models_path = os.path.join(addon_path, "user_files", "models")
     os.makedirs(vendor_path, exist_ok=True)
     os.makedirs(models_path, exist_ok=True)
+
+    return addon_path, vendor_path, models_path
+
+def init():
+    # Get the path to the 'vendor' directory
+    addon_path, vendor_path, models_path = paths()
 
     # Add vendor path to sys.path if it's not already there
     if vendor_path not in sys.path:
@@ -30,6 +37,7 @@ def init():
         import llama_cpp
     except ImportError:
         # Use subprocess to run pip install
+        mw.taskman.run_on_main(lambda: showInfo(f"Anki-Greek Installing Dependencies"))
         print("anki-greek: installing 'llama_ccp' dependencies")
         try:
             env = os.environ.copy()
@@ -55,4 +63,3 @@ def init():
         # Now you can import the package
         import llama_cpp
 
-    return addon_path, vendor_path, models_path
