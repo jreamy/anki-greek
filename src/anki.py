@@ -50,7 +50,7 @@ class Anki:
         source_model = note.note_type()
         if source_model["name"] == "anki-greek" or not target_model:
             return
-        print(f"migrating {id}")
+        print(f"anki-greek: migrating {id}")
         
         input = mw.col.models.change_notetype_info(
             old_notetype_id=source_model['id'],

@@ -74,6 +74,9 @@ class BackgroundTask(threading.Thread):
                 if message["action"] == "update_all":
                     mw.taskman.run_on_main(self.update_all)
                     self.do_sync = True
+                if message["action"] == "update_deck":
+                    mw.taskman.run_on_main(lambda: self.update_deck(message["deck"]))
+                    self.do_sync = True
                 if message["action"] in ["review", "update"]:
                     self.update_card(message["card"], message["cfg"])
 
@@ -108,6 +111,23 @@ class BackgroundTask(threading.Thread):
             msg = {"action": "update", "card": card, "cfg": cfgs[cfg_id]}
             if msg not in snapshot:
                 self.msg_queue.put(msg)
+    
+    def update_deck(self, deck_id):
+
+        deck = mw.col.decks.get(deck_id)
+        cfg = Anki.get_review_config(deck.get("conf"))
+        if not cfg.get("enabled", False):
+            return
+        
+        print("anki-greek: updating deck", deck_id, deck["name"])
+
+        cards = Anki.get_card_info(Anki.list_cards(deck["name"]))
+        for card in cards:
+            if card["modelName"] == "anki-greek" and "reviewed" in card and "mod" in card and card["mod"] > card["reviewed"]:
+                return
+        
+            msg = {"action": "update", "card": card, "cfg": cfg}
+            self.msg_queue.put(msg)
 
     def update_card(self, card, cfg):
         mw.taskman.run_on_main(mw.toolbar.draw)
