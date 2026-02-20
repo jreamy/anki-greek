@@ -47,6 +47,5 @@ for o in other:
 from generator import LLM
 llm = LLM("Koine Greek", d, verb_moods=["participle"], repo="ilsp/Llama-Krikri-8B-Instruct-GGUF", filename="*q4_k_m.gguf")
 
-print(llm.get_verb_forms("ἀγαπήσω, (pp2)"))
-print(llm.generate("ἀγαπήσω", "ἀγαπήσω, (pp2)", "I will love"))
+print(llm.generate("δέ", "δέ", "but, and"))
 
