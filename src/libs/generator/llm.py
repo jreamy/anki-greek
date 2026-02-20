@@ -87,11 +87,8 @@ class LLM:
         verb = self.conjugate(verb, verb_form, seed=seed)
 
         cases = self.get_cases(entry)
-        if len(cases) == 1:
-            noun_form = cases[0]
-            phrase = f"{word} {self.decline(n_entry, noun_form)}"
-        else:
-            phrase = self.decline(n_entry, noun_form, seed=seed)
+        noun_form = cases[0] if len(cases) == 1 else noun_form
+        phrase = f"{word} {self.decline(n_entry, noun_form, seed=seed)}"
 
         output = self.llm.create_chat_completion([
             {
