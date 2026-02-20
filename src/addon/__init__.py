@@ -54,24 +54,23 @@ def show_note_info(browser):
     if not selected_notes:
         showInfo("No notes selected.")
         return
+    
+    q = get_llm_message_queue()
+    if not q:
+        return
 
     # 2. Grab the first selected note
     note_id = selected_notes[0]
     note = mw.col.get_note(note_id)
 
-    card = note.cards()[0]
+    for card in note.cards():
+        deck = mw.col.decks.get(card.did)
+        conf = Anki.get_review_config(deck.get("conf"))
+        if not conf["enabled"]:
+            continue
 
-    q = get_llm_message_queue()
-    if not q:
-        return
-
-    deck = mw.col.decks.get(card.did)
-    conf = Anki.get_review_config(deck.get("conf"))
-    if not conf["enabled"]:
-        return
-
-    crd = derive_fields(card.note(), deck)
-    q.put({"action": "review", "card": crd, "cfg": conf})
+        crd = derive_fields(card.note(), deck)
+        q.put({"action": "review", "card": crd, "cfg": conf})
 
 
 def setup_browser_menu(browser):

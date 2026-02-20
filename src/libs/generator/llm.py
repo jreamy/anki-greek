@@ -78,6 +78,9 @@ class LLM:
         elif verb_mood == "infinitive":
             verb_form += f" {verb_mood}"
             noun_form = "accusitive"
+        elif verb_mood == "participle":
+            number = random.choice(["singular", "plural"])
+            verb_form += f" {noun_form} {number} {verb_mood}"
         else:
             verb_form += f" {verb_mood} {random.choice(["first", "second", "third"])} person {random.choice(["singular", "plural"])}"
 
