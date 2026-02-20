@@ -15,20 +15,22 @@ ANKI_ADDON_DIR = ~/Library/Application\ Support/Anki2/addons21
 
 all: install
 
+build:
+	rm -rf $(BUILD_DIR) && mkdir -p $(BUILD_DIR)/libs
+	mkdir -p $(ANKI_ADDON_DIR)/$(ADDON_NAME)
+	cp -r $(SRC_DIR)/* $(BUILD_DIR)
+	cp -r $(LIB_DIR)/* $(BUILD_DIR)/libs
+	find $(BUILD_DIR) -name "__pycache__" -type d -exec rm -r {} +
+
 # Create the .ankiaddon package (which is just a ZIP file)
-zip:
-	mkdir -p $(BUILD_DIR)
-	cd $(SRC_DIR) && zip -r ../$(BUILD_DIR)/$(ADDON_NAME).ankiaddon .
+zip: build
+	cd $(BUILD_DIR) && zip -r ../$(ADDON_NAME).ankiaddon .
 
 setup:
 	python -m pip install -r requirements.txt
 
 # Install directly to Anki's addon folder for development
-install:
-	rm -rf $(BUILD_DIR) && mkdir -p $(BUILD_DIR)/libs
-	mkdir -p $(ANKI_ADDON_DIR)/$(ADDON_NAME)
-	cp -r $(SRC_DIR)/* $(BUILD_DIR)
-	cp -r $(LIB_DIR)/* $(BUILD_DIR)/libs
+install: build 
 	cp -rv $(BUILD_DIR)/* $(ANKI_ADDON_DIR)/$(ADDON_NAME)/
 	@echo "Done! Restart Anki to see changes."
 
