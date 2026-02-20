@@ -76,7 +76,7 @@ def show_note_info(browser):
 
 def setup_browser_menu(browser):
     # Create a new action in the "Notes" menu
-    action = browser.form.menu_Notes.addAction("Show Greek Note Info")
+    action = browser.form.menu_Notes.addAction("Generate")
     action.setShortcut("Alt+Shift+G")
 
     # Connect the click event to our function
