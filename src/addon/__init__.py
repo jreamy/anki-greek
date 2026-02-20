@@ -60,10 +60,10 @@ def show_note_info(browser):
         return
 
     # 2. Grab the first selected note
-    note_id = selected_notes[0]
-    note = mw.col.get_note(note_id)
+    for note_id in selected_notes:
+        note = mw.col.get_note(note_id)
+        card = note.cards()[0]
 
-    for card in note.cards():
         deck = mw.col.decks.get(card.did)
         conf = Anki.get_review_config(deck.get("conf"))
         if not conf["enabled"]:
