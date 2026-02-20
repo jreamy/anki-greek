@@ -10,14 +10,14 @@ $deckOptions.then((options) => {
       [`${prefix}_dialect`]: "Koine Greek",
       [`${prefix}_model_repo`]: "ilsp/Llama-Krikri-8B-Instruct-GGUF",
       [`${prefix}_model_filename`]: "*q4_k_m.gguf",
-      [`${prefix}_verb_forms`]: "present infinitive\npresent active indicative"
+      [`${prefix}_verb_moods`]: "indicative\ninfinitive\nimperative"
     }
 
     const enabledInput = document.getElementById(`${prefix}_enabled`);
     const dialectInput = document.getElementById(`${prefix}_dialect`);
     const repoInput = document.getElementById(`${prefix}_model_repo`);
     const filenameInput = document.getElementById(`${prefix}_model_filename`);
-    const verbFormsInput = document.getElementById(`${prefix}_verb_forms`);
+    const verbMoodsInput = document.getElementById(`${prefix}_verb_moods`);
 
     // update html when state changes
     store.subscribe((data) => {
@@ -25,7 +25,7 @@ $deckOptions.then((options) => {
       dialectInput.value = data[`${prefix}_dialect`] ?? defaults[`${prefix}_dialect`];
       repoInput.value = data[`${prefix}_model_repo`] ?? defaults[`${prefix}_model_repo`]
       filenameInput.value = data[`${prefix}_model_filename`] ?? defaults[`${prefix}_model_filename`]
-      verbFormsInput.value = data[`${prefix}_verb_forms`] ?? defaults[`${prefix}_verb_forms`]
+      verbMoodsInput.value = data[`${prefix}_verb_moods`] ?? defaults[`${prefix}_verb_moods`]
     });
 
     // update config when check state changes
@@ -61,11 +61,11 @@ $deckOptions.then((options) => {
         };
       });
     });
-    verbFormsInput.addEventListener("change", (_) => {
+    verbMoodsInput.addEventListener("change", (_) => {
       return store.update((data) => {
         return {
           ...defaults, ...data,
-          [`${prefix}_verb_forms`]: verbFormsInput.value,
+          [`${prefix}_verb_moods`]: verbMoodsInput.value,
         };
       });
     });

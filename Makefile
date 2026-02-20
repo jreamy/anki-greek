@@ -1,6 +1,7 @@
 # Variables - Update these for your project
 ADDON_NAME = anki_greek
-SRC_DIR = src
+SRC_DIR = src/addon
+LIB_DIR = src/libs
 BUILD_DIR = build
 # macOS path
 ANKI_ADDON_DIR = ~/Library/Application\ Support/Anki2/addons21
@@ -24,9 +25,10 @@ setup:
 
 # Install directly to Anki's addon folder for development
 install:
-	rm -rf $(BUILD_DIR) && mkdir -p $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) && mkdir -p $(BUILD_DIR)/libs
 	mkdir -p $(ANKI_ADDON_DIR)/$(ADDON_NAME)
 	cp -r $(SRC_DIR)/* $(BUILD_DIR)
+	cp -r $(LIB_DIR)/* $(BUILD_DIR)/libs
 	cp -rv $(BUILD_DIR)/* $(ANKI_ADDON_DIR)/$(ADDON_NAME)/
 	@echo "Done! Restart Anki to see changes."
 

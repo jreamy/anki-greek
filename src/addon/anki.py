@@ -2,7 +2,7 @@
 
 from aqt import mw
 import re
-from .dictionary import Dictionary
+from dictionary import Dictionary
 
 def derive_fields(note, deck):
 
@@ -154,7 +154,7 @@ class Anki:
                 "repo": cfg.get("anki_greek_model_repo", ""),
                 "filename": cfg.get("anki_greek_model_filename", ""),
             },
-            "verb_forms": cfg.get("anki_greek_verb_forms", ""),
+            "verb_moods": cfg.get("anki_greek_verb_moods", ""),
         }
     
     def list_decks_by_config(cfg_id):

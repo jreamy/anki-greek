@@ -8,20 +8,23 @@ from importlib import reload, invalidate_caches
 
 def paths():
     addon_path = os.path.dirname(__file__)
+    libs_path = os.path.join(addon_path, "libs")
     vendor_path = os.path.join(addon_path, "user_files", "libs")
     models_path = os.path.join(addon_path, "user_files", "models")
     os.makedirs(vendor_path, exist_ok=True)
     os.makedirs(models_path, exist_ok=True)
 
-    return addon_path, vendor_path, models_path
-
-def init():
-    # Get the path to the 'vendor' directory
-    addon_path, vendor_path, models_path = paths()
-
     # Add vendor path to sys.path if it's not already there
     if vendor_path not in sys.path:
         sys.path.append(vendor_path)
+    if libs_path not in sys.path:
+        sys.path.append(libs_path)
+
+    return addon_path, vendor_path, libs_path, models_path
+
+def init():
+    # Get the path to the 'vendor' directory
+    addon_path, vendor_path, libs_path, models_path = paths()
 
     # Anki's ErrorHandler is missing a .flush() method, which some
     # libraries (and Python 3.13) expect. We add a dummy one here.

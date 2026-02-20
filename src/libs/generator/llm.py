@@ -1,24 +1,43 @@
 
 from llama_cpp import Llama
-from .dictionary import Dictionary
 import random
 import re
 import time
 
+import os
+import sys
+from contextlib import contextmanager
+
+default_verb_moods = ["indicative", "imperative", "infinitive", "participle"]
+
+
+@contextmanager
+def silence_stderr():
+    new_target = open(os.devnull, "w")
+    old_target = sys.stderr
+    sys.stderr = new_target
+    try:
+        yield
+    finally:
+        sys.stderr = old_target
+        new_target.close()
+
 
 class LLM:
-    def __init__(self, dialect: str, dictionary: Dictionary, repo = "", filename = "", **kwargs: dict):
+    def __init__(self, dialect: str, dictionary, verb_moods: list[str] = default_verb_moods, repo="", filename="", **kwargs: dict):
 
-        self.llm = Llama.from_pretrained(
-            repo, filename,
-            n_gpu_layers=-1,
-            verbose=False,
-            n_ctx=1024,
-            **kwargs,
-        )
+        with silence_stderr():
+            self.llm = Llama.from_pretrained(
+                repo, filename,
+                n_gpu_layers=-1,
+                verbose=False,
+                n_ctx=1024,
+                **kwargs,
+            )
 
         self.dialect = dialect
         self.dictionary = dictionary
+        self.verb_moods = verb_moods
 
     def close(self):
         self.llm.close()
@@ -35,26 +54,41 @@ class LLM:
         other = self.dictionary.other if not dict_limit else random.sample(
             list(self.dictionary.other), min(len(self.dictionary.other), dict_limit))
 
-        verb_form = random.choice(list(self.dictionary.forms)) if len(
-            self.dictionary.forms) else "present active indicative"
+        if word in self.dictionary.verbs:
+            verb, v_entry = word, entry
+        else:
+            verb = random.choice(list(self.dictionary.verbs))
+            v_entry = self.dictionary.entries[verb]["entry"]
 
-        if "imperative" in verb_form:
-            verb_form = f"second person {random.choice(["singular", "plural"])}"
-        elif "infinitive" not in verb_form:
-            verb_form = f"{random.choice(["first", "second", "third"])} person {random.choice(["singular", "plural"])}"
+        verb_form = random.choice(self.get_verb_forms(v_entry))
+        verb_mood = random.choice(self.verb_moods)
 
+        if word in self.dictionary.nouns:
+            noun, n_entry = word, entry
+        else:
+            noun = random.choice(list(self.dictionary.nouns))
+            n_entry = self.dictionary.entries[noun]["entry"]
         noun_form = random.choice(
             ["nominative", "accusative", "genitive", "dative", "vocative"])
 
-        if word in self.dictionary.verbs:
-            word = self.conjugate(word, verb_form, seed=seed)
-        elif word in self.dictionary.nouns:
-            word = self.conjugate(word, noun_form, seed=seed)
+        if verb_mood == "imperative":
+            number = random.choice(["singular", "plural"])
+            verb_form += f" {verb_mood} second person {number}"
+            noun_form = f"vocative {number}"
+        elif verb_mood == "infinitive":
+            verb_form += f" {verb_mood}"
+            noun_form = "accusitive"
+        else:
+            verb_form += f" {verb_mood} {random.choice(["first", "second", "third"])} person {random.choice(["singular", "plural"])}"
+
+        verb = self.conjugate(verb, verb_form, seed=seed)
 
         cases = self.get_cases(entry)
-        phrase = word
         if len(cases) == 1:
-            phrase = f"{word} {self.decline(random.sample(list(self.dictionary.nouns), 1)[0], cases[0])}"
+            noun_form = cases[0]
+            phrase = f"{word} {self.decline(n_entry, noun_form)}"
+        else:
+            phrase = self.decline(n_entry, noun_form, seed=seed)
 
         output = self.llm.create_chat_completion([
             {
@@ -67,16 +101,16 @@ class LLM:
 Allowed Verbs: {", ".join(verbs)}
 Allowed Nouns: {", ".join(nouns)}
 Other Allowed Words: {", ".join(other)}
-Task: Use the above words to generate a short {desc} in {self.dialect} demonstrating the use of {phrase}.
+Task: Use the above words to generate a short {desc} in {self.dialect} demonstrating the use of {phrase} and {verb}.
 Constraints: 
  - Include only allowed nouns, verbs, or other words provided above.
  - Include no explanation or preamble.
  - Include only {self.dialect} word forms, no other dialect, not Modern Greek.
  - Correct all verb forms to agree with their subject.
  - Correct all agreement, spelling, and accents according to {self.dialect}.
- - Use {verb_form} at least once.
  - The {desc} should be short and grammatically correct.
- - The {desc} must focus on the {"phrase" if " " in phrase else "word"} '{phrase}'.
+ - The {desc} must focus on the {noun_form} {"phrase" if " " in phrase else "word"} '{phrase}'.
+ - The {desc} must focus on the {verb_form} verb '{verb}'.
 """},
         ], max_tokens=max_tokens, seed=seed)
 
@@ -93,7 +127,7 @@ Constraints:
             }, {
                 "role": "user",
                 "content": f"""
-Task: Translate the following {desc} into english.
+Task: Translate the following {self.dialect} {desc} into english.
 Constraints:
  - Prefer a word-for-word translation when possible.
  - Include only the translation in the output.
@@ -106,23 +140,36 @@ Original: {story}
 """},
         ], max_tokens=max_tokens, seed=seed)
 
-        return output['choices'][0]["message"]['content'].strip()
+        story = output['choices'][0]["message"]['content'].strip()
+        story = story.split("(Note")[0].split("(Translat")[0].strip()
+
+        return story
 
     def conjugate(self, word, form, seed=None):
+        self.llm.reset()
+
+        negation = "active"
+        if "active" in form:
+            negation = "passive or middle"
+
         output = self.llm.create_chat_completion([
             {
                 "role": "system",
-                "content": f"You are a helpful assistant, very adept at writing in {self.dialect}. Your response is one word.",
+                "content": f"You are a helpful assistant, very adept at writing in {self.dialect}. After generating a response, double check it meets all the contraints provided by the user. Your response is one word.",
             },
             {
                 "role": "user",
                 "content": f"""
-Task: provide the {form} of {word} in {self.dialect}. Do not include articles in the output.
+Task: provide the {form} of '{word}' in {self.dialect}. 
+Constraints:
+ - Use {self.dialect} conjugation rules not Modern Greek.
+ - Use {form} endings, not {negation} endings.
+ - Your response must be a form of '{word}'.
 """},
         ], max_tokens=32, seed=seed)
 
         return output['choices'][0]["message"]['content'].strip().lower()
-    
+
     def decline(self, word, form, seed=None):
         output = self.llm.create_chat_completion([
             {
@@ -152,3 +199,22 @@ Task: provide the {form} of {word} in {self.dialect}. Include the article in the
         }
 
         return [cases[x] for x in re.findall(r"\(\+?\s?(dat|gen|acc|voc|nom)\.?\)", entry)]
+
+    def get_verb_forms(self, entry):
+
+        principle_parts = {
+            "1": ["present active", "present middle", "present passive", "imperfect active", "imperfect middle", "imperfect passive"],
+            "2": ["future active", "future middle"],
+            "3": ["aorist active", "aorist middle"],
+            "4": ["perfect active", "pluperfect active"],
+            "5": ["perfect middle", "perfect passive", "pluperfect middle", "pluperfect passive"],
+            "6": ["aorist passive", "future passive"],
+        }
+
+        pps = re.findall(r"\(pp(\d)\)", entry)
+        if len(pps) == 0:
+            return principle_parts["1"]
+        elif len(pps) == 1:
+            return principle_parts[pps[0]]
+        else:
+            return list(set([pp for x in pps for pp in principle_parts[x]]))

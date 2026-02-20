@@ -8,21 +8,6 @@ import json
 from .deps import init
 
 from .anki import Anki, derive_fields
-import os
-import sys
-from contextlib import contextmanager
-
-
-@contextmanager
-def silence_stderr():
-    new_target = open(os.devnull, "w")
-    old_target = sys.stderr
-    sys.stderr = new_target
-    try:
-        yield
-    finally:
-        sys.stderr = old_target
-        new_target.close()
 
 
 class BackgroundTask(threading.Thread):
@@ -51,11 +36,10 @@ class BackgroundTask(threading.Thread):
         print(f"anki-greek: loaded dictionary for model: {len(dictionary.nouns)} nouns, {len(dictionary.verbs)} verbs.")
 
         print(f"anki-greek: loading model {cfg.get("model", {}).get("repo", "")}.")
-        from .llm import LLM
+        from generator import LLM
 
-        with silence_stderr():
-            llm = LLM(cfg["dialect"], dictionary,
-                           local_dir=self.models_path, **cfg["model"])
+        llm = LLM(cfg["dialect"], dictionary, cfg["verb_moods"],
+                        local_dir=self.models_path, **cfg["model"])
         
         self.llms[key] = llm
         return llm
@@ -139,7 +123,6 @@ class BackgroundTask(threading.Thread):
               card["definition"], f"({card["form"]})", "-", cfg["dialect"])
 
         llm = self.get_llm(cfg)
-        llm.dictionary.forms = set(cfg["verb_forms"].split("\n"))
         llm.dictionary.add(card)
 
         story, translation = llm.generate(
