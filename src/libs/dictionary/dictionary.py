@@ -14,7 +14,7 @@ class Dictionary():
         definition = card["definition"]
         form = card["form"]
 
-        word = entry.split(",")[0].strip()
+        word = entry.split(",")[0].split("(")[0].strip()
         self.entries[word] = {
             "word": word.strip(),
             "entry": entry.strip(),
