@@ -1,4 +1,2 @@
 # anki-greek
-A script for generating greek flashcards in anki
-
-Uses anki connect to interface with anki
+An anki addon for ancient greek. Generates sentences and translations using (mostly) words on flashcards already reviewed.
