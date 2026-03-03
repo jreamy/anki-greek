@@ -154,7 +154,7 @@ class Anki:
                 "repo": cfg.get("anki_greek_model_repo", ""),
                 "filename": cfg.get("anki_greek_model_filename", ""),
             },
-            "verb_moods": cfg.get("anki_greek_verb_moods", ""),
+            "verb_moods": cfg.get("anki_greek_verb_moods", "").split("\n"),
         }
     
     def list_decks_by_config(cfg_id):
