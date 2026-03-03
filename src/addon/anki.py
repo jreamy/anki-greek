@@ -33,7 +33,7 @@ def derive_fields(note, deck):
 
     if "(+" in card["entry"]:
         card["form"] = "other"
-    elif "," in card["entry"]:
+    elif "," in card["entry"] and not "(pp" in card["entry"]:
         card["form"] = "noun"
     elif card["definition"].startswith("I ") or card["definition"].startswith("it is "):
         card["form"] = "verb"
