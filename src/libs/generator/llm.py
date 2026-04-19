@@ -68,21 +68,30 @@ class LLM:
         else:
             noun = random.choice(list(self.dictionary.nouns))
             n_entry = self.dictionary.entries[noun]["entry"]
-        noun_form = random.choice(
-            ["nominative", "accusative", "genitive", "dative", "vocative"])
+        
+        # Map person to appropriate noun cases
+        person_to_cases = {
+            "first": ["accusative", "dative", "genitive"],
+            "second": ["vocative", "accusative", "dative", "genitive"],
+            "third": ["nominative", "accusative", "dative", "genitive"]
+        }
+        
+        person = random.choice(["first", "second", "third"])
+        allowed_cases = person_to_cases[person]
+        number = random.choice(["singular", "plural"])
+        noun_form = f"{random.choice(allowed_cases)} {number}"
 
         if verb_mood == "imperative":
-            number = random.choice(["singular", "plural"])
             verb_form += f" {verb_mood} second person {number}"
             noun_form = f"vocative {number}"
         elif verb_mood == "infinitive":
             verb_form += f" {verb_mood}"
-            noun_form = "accusitive"
+            noun_form = f"accusitive {number}"
         elif verb_mood == "participle":
             number = random.choice(["singular", "plural"])
-            verb_form += f" {noun_form} {number} {verb_mood}"
+            verb_form += f" {noun_form} {verb_mood}"
         else:
-            verb_form += f" {verb_mood} {random.choice(["first", "second", "third"])} person {random.choice(["singular", "plural"])}"
+            verb_form += f" {verb_mood} {person} person {number}"
 
         verb = self.conjugate(verb, verb_form, seed=seed)
 

@@ -45,7 +45,7 @@ for o in other:
 
 
 from generator import LLM
-llm = LLM("Koine Greek", d, verb_moods=["participle"], repo="ilsp/Llama-Krikri-8B-Instruct-GGUF", filename="*q4_k_m.gguf")
+llm = LLM("Koine Greek", d, verb_moods=["indicative"], repo="ilsp/Llama-Krikri-8B-Instruct-GGUF", filename="*q4_k_m.gguf")
 
-print(llm.generate("δέ", "δέ", "but, and"))
+print(llm.generate("τιμή", "τιμή, -ῆς, ἡ", "honor"))
 

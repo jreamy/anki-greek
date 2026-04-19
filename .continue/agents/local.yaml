@@ -1,0 +1,13 @@
+name: Local Config
+version: 1.0.0
+schema: v1
+models:
+  - name: Qwen (Local)
+    provider: openai
+    model: llama-server
+    apiBase: http://localhost:8080/v1
+    roles:
+      - autocomplete
+      - chat
+      - edit
+      - apply

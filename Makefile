@@ -6,6 +6,14 @@ BUILD_DIR = build
 # macOS path
 ANKI_ADDON_DIR = ~/Library/Application\ Support/Anki2/addons21
 
+MODEL_DIR = ~/models
+# MODEL_NAME = Qwen/Qwen2.5-Coder-7B-Instruct-GGUF
+# MODEL_REGEX = "qwen2.5-coder-7b-instruct-q4_k_m*.gguf"
+
+MODEL_NAME = unsloth/Qwen3.5-4B-GGUF
+MODEL_REGEX = "Qwen3.5-4B-Q4_K_M*.gguf"
+MODEL_FILE = Qwen3.5-4B-Q4_K_M.gguf
+
 # Use this for Linux:
 # ANKI_ADDON_DIR = ~/.local/share/Anki2/addons21
 # Use this for Windows (Git Bash/WSL):
@@ -33,6 +41,12 @@ setup:
 install: build 
 	cp -rv $(BUILD_DIR)/* $(ANKI_ADDON_DIR)/$(ADDON_NAME)/
 	@echo "Done! Restart Anki to see changes."
+
+download-agent:
+	HF_HUB_ENABLE_HF_TRANSFER=1 HF_XET_HIGH_PERFORMANCE=1 hf download $(MODEL_NAME) --include "$(MODEL_REGEX)" --local-dir $(MODEL_DIR)
+
+run-agent:
+	llama-server -m ~/models/$(MODEL_FILE) --cache-reuse 256 --port 8080 --ctx-size 8192 --context-shift
 
 # Wipe the build folder and the installed addon
 clean:
