@@ -22,6 +22,7 @@ nouns = [
 { "entry": "δόξα, ἡ", "definition": "glory, honor" },
 { "entry": "κύριος, ὁ", "definition": "Lord, master, owner" },
 { "entry": "νόμος, ὁ", "definition": "law" },
+{ "entry": "ἐχθρός, -ά, -όν", "definition": "hating; as a noun, an enemy"}
 ]
 
 other = [
@@ -47,5 +48,6 @@ for o in other:
 from generator import LLM
 llm = LLM("Koine Greek", d, verb_moods=["indicative"], repo="ilsp/Llama-Krikri-8B-Instruct-GGUF", filename="*q4_k_m.gguf")
 
-print(llm.generate("τιμή", "τιμή, -ῆς, ἡ", "honor"))
-
+# print(llm.generate("τιμή", "τιμή, -ῆς, ἡ", "honor"))
+# print(llm.generate("ἐχθρός", "ἐχθρός, -ά, -όν", "hating; as a noun, an enemy"))
+print(llm.decline("ἐχθρός, -ά, -όν", "dative plural neuter"))

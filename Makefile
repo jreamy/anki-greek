@@ -46,7 +46,7 @@ download-agent:
 	HF_HUB_ENABLE_HF_TRANSFER=1 HF_XET_HIGH_PERFORMANCE=1 hf download $(MODEL_NAME) --include "$(MODEL_REGEX)" --local-dir $(MODEL_DIR)
 
 run-agent:
-	llama-server -m ~/models/$(MODEL_FILE) --cache-reuse 256 --port 8080 --ctx-size 8192 --context-shift
+	llama-server -m ~/models/$(MODEL_FILE) --port 8080 --ctx-size 8192 --context-shift --cache-reuse 256 --cache-type-k q8_0 --cont-batching
 
 # Wipe the build folder and the installed addon
 clean:

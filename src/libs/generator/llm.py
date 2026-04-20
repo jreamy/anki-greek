@@ -79,17 +79,17 @@ class LLM:
         person = random.choice(["first", "second", "third"])
         allowed_cases = person_to_cases[person]
         number = random.choice(["singular", "plural"])
-        noun_form = f"{random.choice(allowed_cases)} {number}"
+        gender = self.dictionary.entries[noun]["gender"] or random.choice(["masculine", "feminine", "neuter"])
+        noun_form = f"{random.choice(allowed_cases)} {number} {gender}"
 
         if verb_mood == "imperative":
             verb_form += f" {verb_mood} second person {number}"
-            noun_form = f"vocative {number}"
+            noun_form = f"vocative {number} {gender}"
         elif verb_mood == "infinitive":
             verb_form += f" {verb_mood}"
-            noun_form = f"accusitive {number}"
+            noun_form = f"accusitive {number} {gender}"
         elif verb_mood == "participle":
-            number = random.choice(["singular", "plural"])
-            verb_form += f" {noun_form} {verb_mood}"
+            verb_form += f" {verb_mood} {noun_form} {gender}"
         else:
             verb_form += f" {verb_mood} {person} person {number}"
 
@@ -99,7 +99,7 @@ class LLM:
             phrase = word
             cases = self.get_cases(entry)
             if len(cases) == 1:
-                phrase = f"{word} {self.decline(n_entry, cases[0], seed=seed)}"
+                phrase = f"{word} {self.decline(n_entry, f"{cases[0]} {number} {gender}", seed=seed)}"
         else:
             phrase = self.decline(n_entry, noun_form, seed=seed)
 
