@@ -130,6 +130,10 @@ Constraints:
         story = output['choices'][0]["message"]['content'].strip()
         story = story.split("(Note")[0].split("(Translat")[0].strip()
 
+        if "future passive" in verb_form:
+            definition = definition.replace("I was ", "I will be ")
+        definition = definition.removeprefix("I ")
+
         return story, self.translate(story, word, definition, desc=desc, max_tokens=max_tokens, seed=seed)
 
     def translate(self, story, word, definition, desc="phrase", max_tokens=128, seed=None):

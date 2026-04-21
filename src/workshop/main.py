@@ -14,6 +14,7 @@ verbs = [
 { "entry": "ἀγαπήσω (pp2)", "definition": "I will love" },
 { "entry": "ἤγαγον (pp3)", "definition": "I led, gathered" },
 { "entry": "ἀνέῳγα (pp4)", "definition": "I have opened" },
+{ "entry": "ἐβαπτίσθην, (pp6)", "definition": "I was baptized" },
 ]
 nouns = [
 { "entry": "τιμή, -ῆς, ἡ", "definition": "honor, price" },
@@ -48,6 +49,6 @@ for o in other:
 from generator import LLM
 llm = LLM("Koine Greek", d, verb_moods=["indicative"], repo="ilsp/Llama-Krikri-8B-Instruct-GGUF", filename="*q4_k_m.gguf")
 
-# print(llm.generate("τιμή", "τιμή, -ῆς, ἡ", "honor"))
+print(llm.generate("ἐβαπτίσθην", "ἐβαπτίσθην, (pp6)", "I was baptized"))
 # print(llm.generate("ἐχθρός", "ἐχθρός, -ά, -όν", "hating; as a noun, an enemy"))
-print(llm.decline("ἐχθρός, -ά, -όν", "dative plural neuter"))
+# print(llm.decline("ἐχθρός, -ά, -όν", "dative plural neuter"))
