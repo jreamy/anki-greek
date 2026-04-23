@@ -16,7 +16,7 @@ class BackgroundTask(threading.Thread):
         self._stop_event = threading.Event()
         self.cfg = cfg
         self.models_path = models_path
-        self.msg_queue = queue.LifoQueue()
+        self.msg_queue = queue.Queue()
         self.do_sync = False
         self.llms = {}
 
@@ -64,10 +64,11 @@ class BackgroundTask(threading.Thread):
                 if message["action"] in ["review", "update"]:
                     self.update_card(message["card"], message["cfg"])
 
+                    if self.msg_queue.qsize() == 0 and self.do_sync:
+                        mw.taskman.run_on_main(mw.onSync)
+                        self.do_sync = False
+
                 self.msg_queue.task_done()
-                if self.msg_queue.qsize() == 0 and self.do_sync:
-                    mw.taskman.run_on_main(mw.onSync)
-                    self.do_sync = False
 
             except queue.Empty:
                 continue
@@ -108,7 +109,7 @@ class BackgroundTask(threading.Thread):
         cards = Anki.get_card_info(Anki.list_cards(deck["name"]))
         for card in cards:
             if card["modelName"] == "anki-greek" and "reviewed" in card and "mod" in card and card["mod"] > card["reviewed"]:
-                return
+                continue
         
             msg = {"action": "update", "card": card, "cfg": cfg}
             self.msg_queue.put(msg)

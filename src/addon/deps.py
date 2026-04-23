@@ -66,3 +66,4 @@ def init():
         # Now you can import the package
         import llama_cpp
 
+        mw.taskman.run_on_main(lambda: showInfo(f"Anki-Greek Dependencies Installed"))
